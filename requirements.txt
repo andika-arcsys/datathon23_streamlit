@@ -1,0 +1,8 @@
+streamlit
+pandas
+seaborn
+plotly.express
+matplotlib.pyplot
+plotly.graph_objects
+statsmodels.tsa.seasonal
+hugchat==0.0.8
