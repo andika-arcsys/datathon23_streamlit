@@ -122,7 +122,7 @@ def season_jointplot():
 def code_container():
     st.markdown('''
                 ### Gist of the Model Fitting & Training
-                View full code on [github](https://github.com/mahakanakala/datathon23_streamlit/blob/main/prophet_model.ipynb) ''')
+                View full code on [github](https://github.com/mahakanakala/datathon23/blob/main/prophet_model.ipynb) ''')
     st.code('''
             # Import libraries
             from prophet import Prophet
