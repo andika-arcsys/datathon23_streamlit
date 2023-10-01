@@ -5,7 +5,7 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from statsmodels.tsa.seasonal import STL
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
 st.set_page_config(page_title="Global Temperature Forecasting Model",
