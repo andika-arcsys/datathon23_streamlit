@@ -7,10 +7,11 @@ import plotly.graph_objects as go
 from statsmodels.tsa.seasonal import STL
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 
+# Set up Streamlit
 st.set_page_config(page_title="Global Temperature Forecasting Model",
                    page_icon=':chart_with_upwards_trend:', layout='wide')
 
-# Load the raw and processed csv data files from github
+# Load all csv files
 df = pd.read_csv("./data/Datathon_Fall2023_Dataset.csv")
 df_processed = pd.read_csv("./data/new_data.csv")
 df_model = pd.read_csv("./data/processed_data.csv")
@@ -55,7 +56,7 @@ with processed_data_column:
                         - (Winter: 1-3, Spring: 4-6, Summer: 7-9, Fall: 10-12)
                     ''')
     
-# Seasonality:
+# Seasonality Chart:
 def seasonality_chart():
     st.markdown('''
                 ## Seasonality and Trends in Temperature Anomalies
@@ -103,7 +104,7 @@ def season_jointplot():
                 
                 ### Seasonal Distribution Insights:
                 - **Summer:** Dominant presence suggests consistent temperature patterns during summer months, deviating from the average.
-                - **Fall (Red):** Significant presence indicates notable temperature anomalies during fall, contributing substantially to the dataset.
+                - **Fall:** Significant presence indicates notable temperature anomalies during fall, contributing substantially to the dataset.
 
                 ### Scatter Plot Observations:
                 - **Fall:** Prevalence of red points signifies specific years with significant temperature anomalies during fall.
@@ -121,7 +122,7 @@ def season_jointplot():
 def code_container():
     st.markdown('''
                 ### Gist of the Model Fitting & Training
-                View full code on [github]() ''')
+                View full code on [github](https://github.com/mahakanakala/datathon23_streamlit/blob/main/prophet_model.ipynb) ''')
     st.code('''
             # Import libraries
             from prophet import Prophet
@@ -174,7 +175,8 @@ def prediction_plot():
                     yaxis_title='Value',
                     hovermode='x')
     st.plotly_chart(fig, use_container_width=True)
-    
+
+# Model Performance Statistics and Analysis
 def performance_stats():
     st.subheader('Model Performance Statistics')
     stats_df_col, stats_des_col = st.columns(2)
