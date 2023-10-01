@@ -5,15 +5,15 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from statsmodels.tsa.seasonal import STL
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 
 st.set_page_config(page_title="Global Temperature Forecasting Model",
                    page_icon=':thought_balloon:', layout='wide')
 
 # Load the raw and processed csv data files from github
-df = pd.read_csv("Datathon_Fall2023_Dataset.csv")
-df_processed = pd.read_csv("new_data.csv")
-df_model = pd.read_csv("processed_data.csv")
+df = pd.read_csv("./data/Datathon_Fall2023_Dataset.csv")
+df_processed = pd.read_csv("./data/new_data.csv")
+df_model = pd.read_csv("./data/processed_data.csv")
 
 # Set page title and description
 st.title("🌡️Temperature Anomaly Forecasting")
@@ -22,7 +22,6 @@ st.markdown("Explore temperature anomaly data and related variables to create a 
 st.header("Data Comparison")
 raw_data_column, processed_data_column = st.columns(2)
 
-# Display raw data in the first column
 with raw_data_column:
     st.subheader("Raw Data")
     df_col, description_col = st.columns(2)
@@ -36,7 +35,6 @@ with raw_data_column:
                     - Anomaly: Percent change from last month to current month
                     ''')
 
-# Display processed data in the second column
 with processed_data_column:
     st.subheader("Processed Data")
     df_col, description_col = st.columns(2)
@@ -104,10 +102,9 @@ def seasonality_chart():
     df['Year'] = pd.to_datetime(df['Year'], format='%Y%m')
     df.set_index('Year', inplace=True)
     
-    # Ensure 'Anomaly' column has numerical values (convert to float if necessary)
-    df['Anomaly'] = df['Anomaly'].astype(float)  # Ensure 'Anomaly' is in numeric format
+    df['Anomaly'] = df['Anomaly'].astype(float)  
     
-    stl = STL(df['Anomaly'], seasonal=seasonal_period)  # Seasonal period is set to 12 for monthly data
+    stl = STL(df['Anomaly'], seasonal=seasonal_period) 
     result = stl.fit()
     
     original_trace = go.Scatter(x=df.index, y=df['Anomaly'], mode='lines', name='Original')
@@ -120,7 +117,7 @@ def seasonality_chart():
                       yaxis_title='Temperature Anomaly')
     return fig
 
-# Centering the plot
+# Centering the plots
 left, middle, right = st.columns((0.1, 6, 0.1))
 with middle:
     raw_data_line_chart()
@@ -131,19 +128,38 @@ with middle:
 st.code('''
         ''', language='python')
 
-tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
-model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
+# Chatbot model training
+model_name = "deepset/roberta-base-squad2"
 
-def generate_response(prompt):
-    input_ids = tokenizer.encode(prompt + tokenizer.eos_token, return_tensors="pt")
-    response_ids = model.generate(input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
-    response = tokenizer.decode(response_ids[0], skip_special_tokens=True)
-    return response
+# Load model & tokenizer
+model = AutoModelForQuestionAnswering.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-# Interactive Sidebar
-st.sidebar.header("ChatBot")
-user_input = st.sidebar.text_input("You:")
-if st.sidebar.button("Send"):
-    if user_input:
-        bot_response = generate_response(user_input)
-        st.sidebar.text_area("Bot:", bot_response)
+st.sidebar.header("Question Answering Chatbot")
+st.sidebar.markdown('''
+                    Made using [deepset/roberta-base-squad2](https://huggingface.co/deepset/roberta-base-squad2?context=You+are+a+LLM+built+to+knowledgable+on+my+data+science+project+submission.+This+is+a+project+about+the+forecasting+model+of+global+temperatures.+The+data+set+is+from+GCAG.+You+are+hosted+on+a+Streamlit+app.&question=What+is+the+data?). 
+                    Ask any questions about our project!
+                    ''')
+# User input box
+question = st.sidebar.text_input("Enter your question:")
+
+context = '''
+            You are an LLM built to be knowledgeable on a data science project submission to the Rutgers Data Science Fall 23 Datathon 
+            submitted by Maha, Nikhila, and Nivedha. This is a project about the forecasting. The data set is from GCAG, this is the website 
+            that has more info on the data: https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/national/data-info. 
+            You are hosted on a Streamlit app. This project is about a forecasting model of global temperatures built using Prophet by Facebook. 
+            The raw data has Year and Anomaly Column. The anamoly represents the percent change of temperature from last month to current month.
+            The visualizations are built plotly - an interactive python plotting library. The github link to the streamlit is: https://github.com/mahakanakala/datathon23_streamlit.
+            The github link to the model and training of this project is: https://github.com/mahakanakala/datathon23.
+            The processed data has Year, Anomaly, Month, and Season Column.
+'''
+
+# Intializing deepset/roberta-base-squad2 model and getting answer instances from pipeline
+if question:
+    nlp = pipeline('question-answering', model=model, tokenizer=tokenizer)
+    QA_input = {
+        'question': question,
+        'context': context
+    }
+    answer = nlp(QA_input)
+    st.sidebar.write("Answer:", answer['answer'])
