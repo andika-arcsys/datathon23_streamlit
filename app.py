@@ -5,8 +5,8 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from statsmodels.tsa.seasonal import STL
-from hugchat import hugchat
-from hugchat.login import Login
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, AutoModelForCausalLM
+import torch
 
 st.set_page_config(page_title="Global Temperature Forecasting Model",
                    page_icon=':thought_balloon:', layout='wide')
@@ -63,7 +63,7 @@ with jointplot_col:
         jointplot = px.scatter(df_processed, x='Year', y='Anomaly', color='Season', 
                             marginal_x='histogram', marginal_y='histogram', 
                             height=800, 
-                            width=1050)
+                            )
         st.plotly_chart(jointplot)
 
 with des_col:
@@ -128,12 +128,23 @@ with middle:
     seasonality_chart()
     season_jointplot()
 
-# Model COde + explanation
+# Model Code + explanation
+st.code('''
+        ''', language='python')
+
+tokenizer = AutoTokenizer.from_pretrained("microsoft/DialoGPT-medium")
+model = AutoModelForCausalLM.from_pretrained("microsoft/DialoGPT-medium")
+
+def generate_response(prompt):
+    input_ids = tokenizer.encode(prompt + tokenizer.eos_token, return_tensors="pt")
+    response_ids = model.generate(input_ids, max_length=1000, pad_token_id=tokenizer.eos_token_id)
+    response = tokenizer.decode(response_ids[0], skip_special_tokens=True)
+    return response
 
 # Interactive Sidebar
 st.sidebar.header("ChatBot")
-
-
-
-def main():
-    season_jointplot()
+user_input = st.sidebar.text_input("You:")
+if st.sidebar.button("Send"):
+    if user_input:
+        bot_response = generate_response(user_input)
+        st.sidebar.text_area("Bot:", bot_response)

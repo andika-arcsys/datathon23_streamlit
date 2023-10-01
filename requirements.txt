@@ -4,4 +4,8 @@ seaborn
 plotly
 matplotlib
 statsmodels
-hugchat==0.0.8
+hugchat
+huggingface-api
+transformers
+chatterbot
+python-dateutil
