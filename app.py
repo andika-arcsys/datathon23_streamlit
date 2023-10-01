@@ -8,27 +8,30 @@ from statsmodels.tsa.seasonal import STL
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 
 st.set_page_config(page_title="Global Temperature Forecasting Model",
-                   page_icon=':thought_balloon:', layout='wide')
+                   page_icon=':chart_with_upwards_trend:', layout='wide')
 
 # Load the raw and processed csv data files from github
 df = pd.read_csv("./data/Datathon_Fall2023_Dataset.csv")
 df_processed = pd.read_csv("./data/new_data.csv")
 df_model = pd.read_csv("./data/processed_data.csv")
 df_forecasted = pd.read_csv("./data/forecast_with_y.csv")
+df_refined_forecast = pd.read_csv("./data/refined_forecast_with_y.csv")
+df_performace = pd.read_csv("./data/performance_table.csv")
 
 # Set page title and description
 st.title("🌡️Temperature Anomaly Forecasting")
 st.markdown("Explore temperature anomaly data and related variables to create a forecasting model using [Prophet by Facebook](https://facebook.github.io/prophet/).")
 
+# Raw and processed data comparison
 st.header("Data Comparison")
 raw_data_column, processed_data_column = st.columns(2)
 
 with raw_data_column:
     st.subheader("Raw Data")
-    df_col, description_col = st.columns(2)
-    with df_col:
+    raw_df_col, raw_description_col = st.columns(2)
+    with raw_df_col:
         st.write(df)
-    with description_col:
+    with raw_description_col:
         st.markdown('''
                     This is the raw data provided. It is extracted from the [GCAG website](https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/data-info)
                     ### Columns
@@ -84,8 +87,7 @@ def seasonality_chart():
                       )
     st.plotly_chart(fig, use_container_width=True)
 
-# Jointplot
-
+# Jointplot which shows the seasons distrubtion vs. anomaly
 def season_jointplot():
     jointplot_col, des_col = st.columns(2)
     with jointplot_col:
@@ -107,12 +109,15 @@ def season_jointplot():
                 - **Fall:** Prevalence of red points signifies specific years with significant temperature anomalies during fall.
                 - **Winter:** Occasional light blue points highlight specific years with notable temperature deviations in winter.
                 - **Hints of Other Colors:** Sparse appearances of dark blue (Spring) and other colors indicate varied anomalies across all seasons.
+                
+                ### Changepoint
+                Important value where the trend steadily increased which is used the model parameters to better fit the data.
 
                 These patterns reveal strong seasonal variations, especially in __summer__ and __fall__, with occasional anomalies in other seasons. Further analysis can provide insights into regional climate trends and the impact of specific seasons on temperature anomalies.
 
                 ''')
 
-# Model Code + explanation
+# Some model code and explanation
 def code_container():
     st.markdown('''
                 ### Gist of the Model Fitting & Training
@@ -134,7 +139,8 @@ def code_container():
             future = model.make_future_dataframe(periods=518, freq='MS')
             forecast = model.predict(future)
             ''', language='python')
-    
+   
+# Prediction vs. Actual Plot 
 def prediction_plot():
     st.markdown('''
                 ## Prediction Plot
@@ -145,12 +151,19 @@ def prediction_plot():
     # Plotting actual data
     fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['y'], mode='lines', name='Actual', line=dict(color='blue')))
 
-    # Plotting predicted data
-    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat'], mode='lines', name='Predicted', line=dict(color='red')))
+    # Plotting intial predicted data
+    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat'], mode='lines', name='Intial Prediction', line=dict(color='red')))
+    
+    # Adding upper and lower bounds for initial predictions
+    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat_lower'], mode='lines', fill=None, line=dict(color='rgba(255,0,0,0.3)'), name='Intial Predicted Lower Bound'))
+    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat_upper'], mode='lines', fill='tonexty', line=dict(color='rgba(255,0,0,0.3)'), name='Intial Predicted Upper Bound'))
+    
+    # Plotting intial predicted data
+    fig.add_trace(go.Scatter(x=df_refined_forecast['ds'], y=df_refined_forecast['yhat'], mode='lines', name='Refined Prediction', line=dict(color='green')))
 
-    # Adding upper and lower bounds
-    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat_lower'], mode='lines', fill=None, line=dict(color='rgba(255,0,0,0.3)'), name='Lower Bound'))
-    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat_upper'], mode='lines', fill='tonexty', line=dict(color='rgba(255,0,0,0.3)'), name='Upper Bound'))
+    # Adding upper and lower bounds for refined predictions
+    fig.add_trace(go.Scatter(x=df_refined_forecast['ds'], y=df_refined_forecast['yhat_lower'], mode='lines', fill=None, line=dict(color='rgba(122, 211, 143, 1)'), name='Refined Predicted Lower Bound'))
+    fig.add_trace(go.Scatter(x=df_refined_forecast['ds'], y=df_refined_forecast['yhat_upper'], mode='lines', fill='tonexty', line=dict(color='rgba(122, 211, 143, 1)'), name='Refined Predicted Upper Bound'))
 
     # Customize layout
     fig.update_layout(title='Actual vs. Predicted',
@@ -158,11 +171,23 @@ def prediction_plot():
                     yaxis_title='Value',
                     hovermode='x')
     st.plotly_chart(fig, use_container_width=True)
+    
+# def performance_stats():
+#     st.container()
+#     st.markdown(
+#         '''
+#         '''
+#     )
+    
+# def further_steps():
+#     st.markdown(
+#         '''
+        
+#         '''
+#     )
 
-def performance_stats():
-    st.container()
-
-# Chatbot model training
+# Chatbot on the sidebar contextualized to the project
+# Model training
 model_name = "deepset/roberta-base-squad2"
 
 # Load model & tokenizer
@@ -177,6 +202,7 @@ st.sidebar.markdown('''
 # User input box
 question = st.sidebar.text_input("Enter your question:")
 
+# Contextualization
 context = '''
             You are an LLM built to be knowledgeable on a data science project submission to the Rutgers Data Science Fall 23 Datathon 
             submitted by Maha, Nikhila, and Nivedha. This is a project about the forecasting. The data set is from GCAG, this is the website 
@@ -205,6 +231,8 @@ def main():
     season_jointplot()
     code_container()
     prediction_plot()
+    # performance_stats()
+    # further_steps()
         
 if __name__ == '__main__':
     main()
