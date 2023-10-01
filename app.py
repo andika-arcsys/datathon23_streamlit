@@ -16,7 +16,7 @@ df_processed = pd.read_csv("./data/new_data.csv")
 df_model = pd.read_csv("./data/processed_data.csv")
 df_forecasted = pd.read_csv("./data/forecast_with_y.csv")
 df_refined_forecast = pd.read_csv("./data/refined_forecast_with_y.csv")
-df_performace = pd.read_csv("./data/performance_table.csv")
+df_performance = pd.read_csv("./data/performance_table.csv")
 
 # Set page title and description
 st.title("🌡️Temperature Anomaly Forecasting")
@@ -143,8 +143,11 @@ def code_container():
 # Prediction vs. Actual Plot 
 def prediction_plot():
     st.markdown('''
-                ## Prediction Plot
-                *Predict temperature anomalies for the next 43 years.*  
+                ## Actual vs. Initial Prediction vs. Refined Prediction Plot
+                Shows the actual, initial forecast, and refined forecast values plotted. The refined forecast values are much closer to the actual.
+                ### How we refined prediction
+                __Add Changepoints__: `changepoints=['1891-09-01', '1939-12-01', '1975-01-01', '2012-03-20', '2010-04-06'])`.
+                Choose 4 critical areas of immediate shift in the graph to better the data to the model  
                 ''')
     fig = go.Figure()
 
@@ -166,26 +169,58 @@ def prediction_plot():
     fig.add_trace(go.Scatter(x=df_refined_forecast['ds'], y=df_refined_forecast['yhat_upper'], mode='lines', fill='tonexty', line=dict(color='rgba(122, 211, 143, 1)'), name='Refined Predicted Upper Bound'))
 
     # Customize layout
-    fig.update_layout(title='Actual vs. Predicted',
+    fig.update_layout(
                     xaxis_title='Date',
                     yaxis_title='Value',
                     hovermode='x')
     st.plotly_chart(fig, use_container_width=True)
     
-# def performance_stats():
-#     st.container()
-#     st.markdown(
-#         '''
-#         '''
-#     )
-    
-# def further_steps():
-#     st.markdown(
-#         '''
+def performance_stats():
+    st.subheader('Model Performance Statistics')
+    stats_df_col, stats_des_col = st.columns(2)
+    with stats_df_col:
+        st.write(df_performance)
+        st.markdown(
+        '''
+        ### Analysis
+        - Not an accurate model despite various other important regressors (energy use, water use, greenhouse gas emmisions) that are missing in the model. 
         
-#         '''
-#     )
+        ### Further Things to Refine Model
+        - **Additive or Multiplicative Seasonality**: Prophet allows you to model the seasonality as either additive or multiplicative. Depending on your data, one might be more appropriate than the other. Experiment with both to see which fits better.
+        - **Adding Regressors**: As mentioned before, adding more data variables can tune the prediction better
+        > By Maha Kanakala, Nikhila Sundar, Nivedha Sundar
+        '''
+    )
+    with stats_des_col:
+        st.markdown(
+            '''
+            **Horizon:** This represents the number of days into the future the model is predicting.
 
+            **MSE (Mean Squared Error):**
+            MSE measures the average of the squares of the errors. Lower values indicate better accuracy. It provides an overall idea of how well the model is performing.
+
+            **RMSE (Root Mean Squared Error):**
+            RMSE is the square root of the MSE. It gives you the average error in the same units as your target variable. RMSE is especially useful when large errors are particularly undesirable.
+
+            **MAE (Mean Absolute Error):**
+            MAE measures the average of the absolute errors. It's not as sensitive to outliers as MSE, making it a good metric when the data contains outliers. MAE provides a more interpretable understanding of the model's accuracy.
+
+            **MAPE (Mean Absolute Percentage Error):**
+            MAPE represents the mean percentage difference between the predicted and actual values. It's useful for understanding the scale of the errors in relation to the actual values. MAPE is expressed as a percentage, making it easy to interpret.
+
+            **MDAPE (Median Absolute Percentage Error):**
+            MDAPE is similar to MAPE, but it uses the median instead of the mean. It's less sensitive to outliers in the data, providing a more robust measure of prediction accuracy, especially when dealing with skewed data.
+
+            **SMAPE (Symmetric Mean Absolute Percentage Error):**
+            SMAPE is another percentage-based error metric that is symmetric, meaning it doesn't disproportionately weigh overestimates and underestimates. It provides a balanced view of the model's performance, considering both positive and negative errors.
+
+            **Coverage:**
+            Coverage likely refers to prediction intervals. It measures the proportion of actual values that fall within the prediction intervals. A higher coverage percentage indicates that your prediction intervals are more accurate, providing a measure of the model's reliability and confidence in its predictions.
+
+            These metrics collectively offer a comprehensive assessment of the forecasting model's accuracy, precision, and reliability, providing valuable insights into its performance over various prediction horizons.
+            '''
+        )
+    
 # Chatbot on the sidebar contextualized to the project
 # Model training
 model_name = "deepset/roberta-base-squad2"
@@ -231,8 +266,7 @@ def main():
     season_jointplot()
     code_container()
     prediction_plot()
-    # performance_stats()
-    # further_steps()
+    performance_stats()
         
 if __name__ == '__main__':
     main()
