@@ -6,7 +6,7 @@
 ## Uses of AI:
 - Integrated a Question & Answer chatbot into the website to ask specific questions about the project
 
-## [Performance Statistics](data/performance_table.csv):
+## [Performance Statistics](data/performance_table.csv)
 
 ## Model used to build forecaster: [Prophet](https://facebook.github.io/prophet/)
 
