@@ -17,7 +17,7 @@ df_model = pd.read_csv("./data/processed_data.csv")
 
 # Set page title and description
 st.title("🌡️Temperature Anomaly Forecasting")
-st.markdown("Explore temperature anomaly data and related variables to create a forecasting model using [Neural Prophet](https://neuralprophet.com/).")
+st.markdown("Explore temperature anomaly data and related variables to create a forecasting model using [Prophet by Facebook](https://facebook.github.io/prophet/).")
 
 st.header("Data Comparison")
 raw_data_column, processed_data_column = st.columns(2)
@@ -51,15 +51,50 @@ with processed_data_column:
                         - (Winter: 1-3, Spring: 4-6, Summer: 7-9, Fall: 10-12)
                     ''')
     
+# Seasonality:
+def seasonality_chart():
+    seasonal_period = 11
+    st.markdown('''
+                ## Seasonality and Trends in Temperature Anomalies
+                *Visualize raw data and check the trends and seasonality.*  
+                **Trends**: represents the long-term movement or direction in the data. It captures the underlying pattern in the data that shows a 
+                general increase, decrease, or stability over time.  
+                **Seasonality**: refers to the repeating pattern or fluctuations in the data that occur at regular intervals, typically within a year. 
+                These patterns repeat over a fixed period, such as monthly, quarterly, or yearly, and are often influenced by seasonal factors like 
+                weather, holidays, or biological cycles. In this case the seasonality is yearly.''')
+    # Ensure 'Anomaly' column has numerical values (convert to float if necessary)
+    df['Anomaly'] = pd.to_numeric(df['Anomaly'], errors='coerce')  # Drop rows with NaN values in 'Anomaly' column
     
+    # Convert 'Year' to datetime format and set it as the index
+    df['Year'] = pd.to_datetime(df['Year'], format='%Y%m')
+    df.set_index('Year', inplace=True)
+    
+    stl = STL(df['Anomaly'], seasonal=seasonal_period)  # Seasonal period is set to 12 for monthly data
+    result = stl.fit()
+    
+    original_trace = go.Scatter(x=df.index, y=df['Anomaly'], mode='lines', name='Original')
+    trend_trace = go.Scatter(x=df.index, y=result.trend, mode='lines', name='Trend', line=dict(color='orange'))
+    seasonal_trace = go.Scatter(x=df.index, y=result.seasonal, mode='lines', name='Seasonal', line=dict(color='green'))
+    
+    fig = go.Figure(data=[original_trace, trend_trace, seasonal_trace])
+    fig.update_layout(
+                      xaxis_title='Year',
+                      yaxis_title='Temperature Anomaly',
+                    #   margin={"r": 0, "t": 0, "l": 0, "b": 0}, 
+                    #   height=800, 
+                    #   width=1050
+                      )
+    st.plotly_chart(fig, use_container_width=True)
+
+ # Jointplot
 jointplot_col, des_col = st.columns(2)
-# Jointplot
+
 with jointplot_col:
     def season_jointplot():
         st.markdown('## Jointplot: Year vs. Anomaly with Seasonal Distribution')
         jointplot = px.scatter(df_processed, x='Year', y='Anomaly', color='Season', 
-                            marginal_x='histogram', marginal_y='histogram', 
-                            height=800, 
+                            marginal_x='histogram', marginal_y='histogram' 
+                             
                             )
         st.plotly_chart(jointplot)
 
@@ -68,65 +103,28 @@ with des_col:
                 This jointplot shows the correlation between the seasons and the anamoly.
                 ''')
 
-# Line Chart of raw data
-def raw_data_line_chart():
-    st.subheader("Temperature Anomaly Over Years (Line Chart)")
-    fig = px.line(df_model, x='ds', y='y', title='Temperature Anomaly Over Years (1850-2022)')
-    fig.update_layout(title_text="title", 
-                      margin={"r": 0, "t": 0, "l": 0, "b": 0}, 
-                      height=800, 
-                      width=1050,
-                      xaxis_title="Years",
-                      yaxis_title="Anamoly",)
-    st.plotly_chart(fig, use_container_width=True)
-    st.write()
-
-# Seasonality:
-# def seasonality_chart():
-#     seasonal_period = 12
-#     stl = STL(df['Anomaly'], seasonal=seasonal_period)  # Seasonal period is set to 12 for monthly data
-#     result = stl.fit()
-#     original_trace = go.Scatter(x=df['Year'], y=df['Anomaly'], mode='lines', name='Original')
-#     trend_trace = go.Scatter(x=df['Year'], y=result.trend, mode='lines', name='Trend', line=dict(color='orange'))
-#     seasonal_trace = go.Scatter(x=df['Year'], y=result.seasonal, mode='lines', name='Seasonal', line=dict(color='green'))
-    
-#     fig = go.Figure(data=[original_trace, trend_trace, seasonal_trace])
-#     fig.update_layout(title='Seasonality and Trends in Temperature Anomalies',
-#                       xaxis_title='Year',
-#                       yaxis_title='Temperature Anomaly')
-
-def seasonality_chart():
-    seasonal_period = 11
-    
-    # Convert 'Year' to datetime format and set it as the index
-    df['Year'] = pd.to_datetime(df['Year'], format='%Y%m')
-    df.set_index('Year', inplace=True)
-    
-    df['Anomaly'] = df['Anomaly'].astype(float)  
-    
-    stl = STL(df['Anomaly'], seasonal=seasonal_period) 
-    result = stl.fit()
-    
-    original_trace = go.Scatter(x=df.index, y=df['Anomaly'], mode='lines', name='Original')
-    trend_trace = go.Scatter(x=df.index, y=result.trend, mode='lines', name='Trend', line=dict(color='orange'))
-    seasonal_trace = go.Scatter(x=df.index, y=result.seasonal, mode='lines', name='Seasonal', line=dict(color='green'))
-    
-    fig = go.Figure(data=[original_trace, trend_trace, seasonal_trace])
-    fig.update_layout(title='Seasonality and Trends in Temperature Anomalies',
-                      xaxis_title='Year',
-                      yaxis_title='Temperature Anomaly')
-    return fig
-
-# Centering the plots
-left, middle, right = st.columns((0.1, 6, 0.1))
-with middle:
-    raw_data_line_chart()
-    seasonality_chart()
-    season_jointplot()
-
 # Model Code + explanation
-st.code('''
-        ''', language='python')
+def code_container():
+    st.markdown('''
+                ### Gist of the Model Fitting & Training
+                View full code on [github]() ''')
+    st.code('''
+            # Import libraries
+            from prophet import Prophet
+            import numpy as np
+            import pandas as pd
+            import matplotlib.pyplot as plt
+            %matplotlib inline
+            
+            # Split test & Train Data (75% & 25%)
+            train = df[:1554]
+            test = df[1554:]
+            
+            # Initialize and fit model
+            model = Prophet().fit(train)
+            future = model.make_future_dataframe(periods=518, freq='MS')
+            forecast = model.predict(future)
+            ''', language='python')
 
 # Chatbot model training
 model_name = "deepset/roberta-base-squad2"
@@ -148,8 +146,10 @@ context = '''
             submitted by Maha, Nikhila, and Nivedha. This is a project about the forecasting. The data set is from GCAG, this is the website 
             that has more info on the data: https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/national/data-info. 
             You are hosted on a Streamlit app. This project is about a forecasting model of global temperatures built using Prophet by Facebook. 
-            The raw data has Year and Anomaly Column. The anamoly represents the percent change of temperature from last month to current month.
-            The visualizations are built plotly - an interactive python plotting library. The github link to the streamlit is: https://github.com/mahakanakala/datathon23_streamlit.
+            The raw data has Year and Anomaly Column. The anamoly representsanomaly means a departure from a reference value or long-term average. 
+            A positive anomaly indicates that the observed temperature was warmer than the reference value, while a negative anomaly indicates 
+            that the observed temperature was cooler than the reference value. The visualizations are built plotly - an interactive python 
+            plotting library. The github link to the streamlit is: https://github.com/mahakanakala/datathon23_streamlit.
             The github link to the model and training of this project is: https://github.com/mahakanakala/datathon23.
             The processed data has Year, Anomaly, Month, and Season Column.
 '''
@@ -163,3 +163,11 @@ if question:
     }
     answer = nlp(QA_input)
     st.sidebar.write("Answer:", answer['answer'])
+    
+def main():
+    seasonality_chart()
+    season_jointplot()
+    code_container()
+        
+if __name__ == '__main__':
+    main()
