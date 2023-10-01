@@ -14,6 +14,7 @@ st.set_page_config(page_title="Global Temperature Forecasting Model",
 df = pd.read_csv("./data/Datathon_Fall2023_Dataset.csv")
 df_processed = pd.read_csv("./data/new_data.csv")
 df_model = pd.read_csv("./data/processed_data.csv")
+df_forecasted = pd.read_csv("./data/forecast_with_y.csv")
 
 # Set page title and description
 st.title("🌡️Temperature Anomaly Forecasting")
@@ -29,7 +30,7 @@ with raw_data_column:
         st.write(df)
     with description_col:
         st.markdown('''
-                    This is the raw data provided. It is extracted from the [GCAG website](https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/data-info)" . 
+                    This is the raw data provided. It is extracted from the [GCAG website](https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/global/data-info)
                     ### Columns
                     - Year: year + month (Example: 18501 = 1850, January)
                     - Anomaly: Percent change from last month to current month
@@ -53,7 +54,6 @@ with processed_data_column:
     
 # Seasonality:
 def seasonality_chart():
-    seasonal_period = 11
     st.markdown('''
                 ## Seasonality and Trends in Temperature Anomalies
                 *Visualize raw data and check the trends and seasonality.*  
@@ -69,9 +69,10 @@ def seasonality_chart():
     df['Year'] = pd.to_datetime(df['Year'], format='%Y%m')
     df.set_index('Year', inplace=True)
     
-    stl = STL(df['Anomaly'], seasonal=seasonal_period)  # Seasonal period is set to 12 for monthly data
+    stl = STL(df['Anomaly'], seasonal=11)
     result = stl.fit()
     
+    # Plot the original, trend, and seasonal lines
     original_trace = go.Scatter(x=df.index, y=df['Anomaly'], mode='lines', name='Original')
     trend_trace = go.Scatter(x=df.index, y=result.trend, mode='lines', name='Trend', line=dict(color='orange'))
     seasonal_trace = go.Scatter(x=df.index, y=result.seasonal, mode='lines', name='Seasonal', line=dict(color='green'))
@@ -79,28 +80,36 @@ def seasonality_chart():
     fig = go.Figure(data=[original_trace, trend_trace, seasonal_trace])
     fig.update_layout(
                       xaxis_title='Year',
-                      yaxis_title='Temperature Anomaly',
-                    #   margin={"r": 0, "t": 0, "l": 0, "b": 0}, 
-                    #   height=800, 
-                    #   width=1050
+                      yaxis_title='Temperature Anomaly'
                       )
     st.plotly_chart(fig, use_container_width=True)
 
- # Jointplot
-jointplot_col, des_col = st.columns(2)
+# Jointplot
 
-with jointplot_col:
-    def season_jointplot():
+def season_jointplot():
+    jointplot_col, des_col = st.columns(2)
+    with jointplot_col:
         st.markdown('## Jointplot: Year vs. Anomaly with Seasonal Distribution')
         jointplot = px.scatter(df_processed, x='Year', y='Anomaly', color='Season', 
-                            marginal_x='histogram', marginal_y='histogram' 
-                             
+                            marginal_x='histogram', marginal_y='histogram'              
                             )
+        jointplot.update_layout(height=500, margin={"r": 160, "t": 50, "l": 20, "b": 50})
         st.plotly_chart(jointplot)
+    with des_col:
+        st.markdown('''
+                The jointplot provides a comprehensive view of the relationship between years, temperature anomalies, and seasons. It's a powerful tool for understanding both the overall trends in temperature anomalies over time and the seasonal variations within the dataset.
+                
+                ### Seasonal Distribution Insights:
+                - **Summer:** Dominant presence suggests consistent temperature patterns during summer months, deviating from the average.
+                - **Fall (Red):** Significant presence indicates notable temperature anomalies during fall, contributing substantially to the dataset.
 
-with des_col:
-    st.markdown('''
-                This jointplot shows the correlation between the seasons and the anamoly.
+                ### Scatter Plot Observations:
+                - **Fall:** Prevalence of red points signifies specific years with significant temperature anomalies during fall.
+                - **Winter:** Occasional light blue points highlight specific years with notable temperature deviations in winter.
+                - **Hints of Other Colors:** Sparse appearances of dark blue (Spring) and other colors indicate varied anomalies across all seasons.
+
+                These patterns reveal strong seasonal variations, especially in __summer__ and __fall__, with occasional anomalies in other seasons. Further analysis can provide insights into regional climate trends and the impact of specific seasons on temperature anomalies.
+
                 ''')
 
 # Model Code + explanation
@@ -125,6 +134,33 @@ def code_container():
             future = model.make_future_dataframe(periods=518, freq='MS')
             forecast = model.predict(future)
             ''', language='python')
+    
+def prediction_plot():
+    st.markdown('''
+                ## Prediction Plot
+                *Predict temperature anomalies for the next 43 years.*  
+                ''')
+    fig = go.Figure()
+
+    # Plotting actual data
+    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['y'], mode='lines', name='Actual', line=dict(color='blue')))
+
+    # Plotting predicted data
+    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat'], mode='lines', name='Predicted', line=dict(color='red')))
+
+    # Adding upper and lower bounds
+    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat_lower'], mode='lines', fill=None, line=dict(color='rgba(255,0,0,0.3)'), name='Lower Bound'))
+    fig.add_trace(go.Scatter(x=df_forecasted['ds'], y=df_forecasted['yhat_upper'], mode='lines', fill='tonexty', line=dict(color='rgba(255,0,0,0.3)'), name='Upper Bound'))
+
+    # Customize layout
+    fig.update_layout(title='Actual vs. Predicted',
+                    xaxis_title='Date',
+                    yaxis_title='Value',
+                    hovermode='x')
+    st.plotly_chart(fig, use_container_width=True)
+
+def performance_stats():
+    st.container()
 
 # Chatbot model training
 model_name = "deepset/roberta-base-squad2"
@@ -168,6 +204,7 @@ def main():
     seasonality_chart()
     season_jointplot()
     code_container()
+    prediction_plot()
         
 if __name__ == '__main__':
     main()
