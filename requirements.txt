@@ -5,3 +5,4 @@ plotly
 matplotlib
 statsmodels
 transformers
+torch
