@@ -1,6 +1,6 @@
 import streamlit as st
 # import streamlit.components.v1 as components
-import streamlit_analytics
+# import streamlit_analytics
 import pandas as pd
 import seaborn as sns
 import plotly.express as px
@@ -28,7 +28,7 @@ df_refined_forecast = pd.read_csv("./data/refined_forecast_with_y.csv")
 df_performance = pd.read_csv("./data/performance_table.csv")
 
 # Set page title and description
-streamlit_analytics.start_tracking()
+# streamlit_analytics.start_tracking()
 st.title("🌡️Temperature Anomaly Forecasting")
 st.markdown("Explore temperature anomaly data and related variables to create a forecasting model using [Prophet by Facebook](https://facebook.github.io/prophet/).")
 
@@ -282,4 +282,4 @@ def main():
 if __name__ == '__main__':
     main()
     
-streamlit_analytics.stop_tracking()
+# streamlit_analytics.stop_tracking()
