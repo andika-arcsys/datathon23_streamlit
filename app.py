@@ -1,4 +1,6 @@
 import streamlit as st
+# import streamlit.components.v1 as components
+import streamlit_analytics
 import pandas as pd
 import seaborn as sns
 import plotly.express as px
@@ -11,6 +13,12 @@ from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 st.set_page_config(page_title="Global Temperature Forecasting Model",
                    page_icon=':chart_with_upwards_trend:', layout='wide')
 
+
+# Include Google Analytics tracking code
+# with open("google_analytics.html", "r") as f:
+#     html_code = f.read()
+#     components.html(html_code, height=0)
+
 # Load all csv files
 df = pd.read_csv("./data/Datathon_Fall2023_Dataset.csv")
 df_processed = pd.read_csv("./data/new_data.csv")
@@ -20,6 +28,7 @@ df_refined_forecast = pd.read_csv("./data/refined_forecast_with_y.csv")
 df_performance = pd.read_csv("./data/performance_table.csv")
 
 # Set page title and description
+streamlit_analytics.start_tracking()
 st.title("🌡️Temperature Anomaly Forecasting")
 st.markdown("Explore temperature anomaly data and related variables to create a forecasting model using [Prophet by Facebook](https://facebook.github.io/prophet/).")
 
@@ -272,3 +281,5 @@ def main():
         
 if __name__ == '__main__':
     main()
+    
+streamlit_analytics.stop_tracking()
